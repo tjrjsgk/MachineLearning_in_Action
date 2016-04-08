@@ -1,3 +1,0 @@
-# sSuhKunHa
-
-print "hello world"

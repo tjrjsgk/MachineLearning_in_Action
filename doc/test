@@ -1,0 +1,135 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<pthread.h>
+#include<fstream>
+#include<iostream>
+#include<cstring>
+
+//#include<curl.h>
+#include<json/json.h>
+#include<opencv2/opencv.hpp>
+
+#include<unistd.h>
+
+
+using namespace std;
+
+
+
+void *thread_function(void *data){
+	int num = *((int*)data);
+	for(int i=0;i<num;i++){
+		for(int j=0;j<1000000;j++){}
+		printf("%d ",num);
+
+	}
+
+}
+
+
+
+
+void stringToCharPointer(string input, char** output){
+	(*output) = new char[input.length()+1];
+	strcpy((*output),input.c_str());
+}
+
+
+int main(int argc, char* argv[]){
+
+	char* jsondata_path = argv[1];
+	char* result_path = argv[2];
+
+
+	ifstream input(jsondata_path);
+	string jsonData;
+
+	while(!input.eof()){
+		string temp;
+		input >> temp;
+		jsonData += temp;
+	}
+	input.close();
+	//remove(jsondata_path);
+
+	Json::Value root;
+	Json::Reader reader;
+
+	bool isSuccess = reader.parse(jsonData,root,false);
+	
+	if(not isSuccess){
+		//parsing error
+		return -1;
+	}
+
+	
+	const Json::Value __id = root["_id"];
+	const Json::Value _rFootLen = root["rFootLen"];
+	const Json::Value _lFootLen = root["lFootLen"];
+	const Json::Value _imagesPath = root["imagesPath"];
+	const Json::Value _returnURL = root["returnURL"];
+
+	char* _id;
+	char* rFootLenChar, *lFootLenChar;
+	int rFootLen, lFootLen;
+	char* imagePath[6];
+	char* returnURL;
+
+	stringToCharPointer(__id.asString(),&_id);
+	stringToCharPointer(_rFootLen.asString(),&rFootLenChar);
+	stringToCharPointer(_lFootLen.asString(),&lFootLenChar);
+	stringToCharPointer(_returnURL.asString(),&returnURL);
+
+	for(int i=0;i<_imagesPath.size();i++){
+		string name = _imagesPath[i].asString();
+		stringToCharPointer(name,&(imagePath[i]));
+	}
+
+//	rFootLen = atoi(rFootLenChar);
+//	lFootLen = atoi(lFootLenChar);
+
+//processing start!
+
+	pthread_t thread[5];
+	
+	int num[5] = {10,20};
+	int thr_id;
+	int status;
+
+	thr_id = pthread_create(&thread[0],NULL,thread_function,(void*)&num[0]);
+	thr_id = pthread_create(&thread[1],NULL,thread_function,(void*)&num[1]);
+	
+	pthread_join(thread[0],(void **)&status);
+	pthread_join(thread[1],(void **)&status);
+
+	printf("**\n");	//processing~~~~~~~~
+
+
+	
+
+//processing end!
+
+
+	Json::Value result;
+
+	result["_id"] = __id;
+	result["imagesPath"] = _imagesPath;
+
+	Json::Value footData;
+	footData["key1"] = "value1";
+	footData["key2"] = "value2";
+	footData["key3"] = "value3";
+	footData["key4"] = "value4";
+	footData["key5"] = "value5";
+	result["footData"] = footData;
+
+	Json::StyledWriter writer;
+	string s = writer.write(result);
+	
+	ofstream out(result_path);
+	out << s;
+	out.close();
+
+	return 0;
+}
+

@@ -16,7 +16,6 @@ def createDataSet():
     #change to discrete values
     return dataSet, labels
 
-
 def calcShannonEnt(dataSet):
     numEntries = len(dataSet)
     labelCounts = {}
